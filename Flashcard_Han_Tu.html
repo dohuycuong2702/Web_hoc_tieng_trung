@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flashcard Hán Tự - Học tiếng Trung</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f4f8;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            margin: 0;
+            padding-top: 10px;
+            box-sizing: border-box;
+        }
+        .container { width: 95%; max-width: 480px; text-align: center; }
+        
+        .app-nav { display: flex; width: 100%; background-color: #2c3e50; border-radius: 12px; margin-bottom: 15px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .nav-item { flex: 1; padding: 12px 0; color: #bdc3c7; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .nav-item.active { background-color: #3498db; color: white; }
+
+        .search-box { width: 100%; margin-bottom: 10px; }
+        .search-box input { width: 100%; padding: 10px 15px; font-size: 14px; border: 2px solid #bdc3c7; border-radius: 8px; outline: none; box-sizing: border-box; }
+        .search-box input:focus { border-color: #3498db; }
+        
+        .tabs { display: flex; justify-content: space-between; margin-bottom: 10px; background-color: #e0e0e0; border-radius: 8px; overflow: hidden; }
+        .tab { flex: 1; padding: 8px 2px; font-size: 12px; font-weight: bold; color: #555; cursor: pointer; text-align: center; border-right: 1px solid #ccc; }
+        .tab:last-child { border-right: none; }
+        .tab.active { background-color: #3498db; color: white; }
+        
+        .batch-panel { width: 100%; margin: 0 0 12px; text-align: left; }
+        .batch-heading { font-size: 13px; font-weight: bold; color: #52616b; margin: 0 0 7px 2px; }
+        .batch-list { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; }
+        .batch-btn { border: 1px solid #cbd5df; border-radius: 8px; background: #fff; color: #34495e; padding: 9px 4px; font-size: 12px; font-weight: 700; cursor: pointer; }
+        .batch-btn span { display: block; font-size: 10px; font-weight: 500; color: #7f8c8d; margin-top: 2px; }
+        .batch-btn.active { background: #3498db; border-color: #3498db; color: #fff; }
+        .batch-btn.active span { color: #eaf5ff; }
+        .batch-status { margin: 7px 2px 0; color: #667782; font-size: 12px; }
+        .btn-reverse { background-color: #9b59b6; color: white; padding: 10px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; margin-bottom: 10px; width: 100%; font-size: 14px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .progress-container { width: 100%; background-color: #e0e0e0; border-radius: 10px; margin-bottom: 8px; overflow: hidden; }
+        .progress-bar { height: 8px; background-color: #4CAF50; width: 0%; transition: width 0.3s; }
+        .counter { font-size: 14px; color: #555; margin-bottom: 10px; font-weight: bold; }
+        
+        /* CARD CSS */
+        .flashcard { width: 100%; height: 380px; perspective: 1000px; cursor: pointer; margin-bottom: 15px; position: relative; }
+        .card-inner { width: 100%; height: 100%; transition: transform 0.6s; transform-style: preserve-3d; position: relative; box-shadow: 0 6px 20px rgba(0,0,0,0.15); border-radius: 20px; }
+        .flashcard.flipped .card-inner { transform: rotateY(180deg); }
+        .card-front, .card-back { width: 100%; height: 100%; position: absolute; backface-visibility: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 20px; background-color: white; padding: 15px; box-sizing: border-box; }
+        .card-back { transform: rotateY(180deg); background-color: #fff9e6; justify-content: flex-start; }
+        
+        .bookmark-btn { position: absolute; top: 10px; right: 15px; font-size: 30px; color: #ccc; z-index: 10; transition: 0.2s; }
+        .bookmark-btn.marked { color: #f1c40f; }
+        .trash-btn { position: absolute; top: 10px; left: 15px; font-size: 26px; color: #95a5a6; z-index: 10; transition: 0.2s; }
+        .trash-btn:hover, .bookmark-btn:hover { transform: scale(1.1); }
+        
+        .text-huge { font-size: 80px; color: #2c3e50; font-weight: normal; }
+        .text-medium { font-size: 30px; color: #34495e; font-weight: bold; }
+        .text-large-hanzi { font-size: 55px; color: #2c3e50; margin-top: 10px; margin-bottom: 5px; }
+        .pinyin { font-size: 28px; color: #e74c3c; margin-top: 15px; margin-bottom: 8px; font-weight: bold; }
+        .meaning { font-size: 20px; color: #34495e; margin-bottom: 10px; font-weight: bold; }
+        .pinyin-small { font-size: 20px; color: #e74c3c; margin-bottom: 10px; font-weight: bold; }
+        
+        .compounds-box { width: 100%; background-color: rgba(255, 255, 255, 0.7); border-radius: 10px; padding: 10px; box-sizing: border-box; border-left: 5px solid #f39c12; text-align: left; overflow-y: auto; flex-grow: 1; margin-top: 10px; }
+        .compounds-title { font-size: 12px; color: #7f8c8d; text-transform: uppercase; margin-bottom: 4px; }
+        .compounds-text { font-size: 15px; color: #27ae60; line-height: 1.4; }
+        
+        .controls { display: flex; justify-content: space-between; width: 100%; }
+        .controls button { padding: 10px 5px; font-size: 14px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; flex: 1; margin: 0 5px; color: white; background-color: #3498db; }
+        .controls button.btn-shuffle { background-color: #f1c40f; color: #333; }
+
+        /* QUIZ CSS */
+        #quiz-section { display: none; width: 100%; }
+        .quiz-card { background-color: white; border-radius: 20px; padding: 25px 20px; box-shadow: 0 6px 20px rgba(0,0,0,0.15); margin-bottom: 20px; }
+        .quiz-hanzi { font-size: 80px; color: #2c3e50; margin-bottom: 10px; }
+        .quiz-meaning { font-size: 16px; color: #7f8c8d; margin-bottom: 20px; font-weight: bold; }
+        .quiz-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .quiz-btn { background-color: #f8f9fa; border: 2px solid #bdc3c7; border-radius: 12px; padding: 12px; font-size: 20px; font-weight: bold; color: #2c3e50; cursor: pointer; transition: 0.2s; }
+        .quiz-btn:hover { background-color: #e2e6ea; }
+        .quiz-btn.correct { background-color: #2ecc71; color: white; border-color: #27ae60; }
+        .quiz-btn.wrong { background-color: #e74c3c; color: white; border-color: #c0392b; }
+        
+        .quiz-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .quiz-score { font-size: 18px; font-weight: bold; color: #3498db; }
+        .quiz-shuffle-btn { background-color: #f1c40f; border: none; padding: 8px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; color: #333; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: 0.2s; }
+        .quiz-shuffle-btn:hover { background-color: #f39c12; color: white; }
+
+
+        /* Giao dien responsive moi: sidebar gon + khu vuc hoc rong */
+        * { box-sizing: border-box; }
+        body {
+            background: radial-gradient(circle at 15% 10%, #e7f0ff 0, transparent 32%),
+                        linear-gradient(135deg, #f4f7fb 0%, #edf2f8 100%);
+            padding: 24px;
+            color: #263449;
+        }
+        .container {
+            width: min(100%, 1240px);
+            max-width: 1240px;
+            text-align: center;
+            background: rgba(255,255,255,.78);
+            border: 1px solid rgba(214,224,237,.9);
+            border-radius: 24px;
+            padding: 22px;
+            box-shadow: 0 18px 55px rgba(35,55,85,.10);
+            display: grid;
+            grid-template-columns: 300px minmax(0, 1fr);
+            grid-template-areas:
+                "sidebar progress"
+                "sidebar study"
+                "sidebar quiz";
+            gap: 14px 24px;
+            align-items: start;
+            align-content: start;
+        }
+        .sidebar { grid-area: sidebar; display: flex; flex-direction: column; align-items: stretch; gap: 12px; min-width: 0; }
+        .app-nav { grid-area: auto; margin: 0; border-radius: 13px; padding: 4px; background: #eaf0f8; box-shadow: none; gap: 4px; }
+        .nav-item { border-radius: 10px; padding: 12px 8px; color: #62728a; font-size: 14px; }
+        .nav-item.active { background: linear-gradient(135deg,#3478e5,#5b9af5); box-shadow: 0 5px 14px rgba(52,120,229,.22); }
+        .search-box { grid-area: auto; margin: 0; }
+        .search-box input { border: 1px solid #d8e1ed; background: #f9fbfe; border-radius: 12px; padding: 13px 15px; font-size: 14px; }
+        .tabs { grid-area: auto; margin: 0; background: #edf2f8; padding: 4px; border-radius: 12px; gap: 3px; }
+        .tab { border: 0; border-radius: 9px; padding: 8px 3px; font-size: 11px; line-height: 1.25; }
+        .tab.active { background: #3478e5; box-shadow: 0 3px 9px rgba(52,120,229,.2); }
+        .batch-panel { grid-area: auto; margin: 0; padding: 15px; background: #f7f9fc; border: 1px solid #e5ebf3; border-radius: 16px; }
+        .batch-heading { color: #33445d; font-size: 14px; margin-bottom: 11px; }
+        .batch-list { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+        .batch-btn { padding: 10px 8px; border: 1px solid #e0e7f0; border-radius: 11px; background: #fff; font-size: 12px; transition: .18s ease; }
+        .batch-btn:hover { border-color: #8db6f4; transform: translateY(-1px); }
+        .batch-btn.active { background: linear-gradient(135deg,#3478e5,#5798f3); border-color: transparent; box-shadow: 0 4px 12px rgba(52,120,229,.18); }
+        .batch-status { margin: 11px 2px 0; line-height: 1.45; color: #738198; }
+        .progress-container { grid-area: progress; width: 100%; margin: 4px 0 0; height: 7px; background: #e7edf5; }
+        .progress-bar { height: 7px; background: linear-gradient(90deg,#28b58a,#6bd6b1); }
+        #flashcard-section { grid-area: study; width: 100%; min-width: 0; }
+        #quiz-section { grid-area: quiz; width: 100%; min-width: 0; }
+        .btn-reverse { width: auto; min-width: 260px; padding: 11px 18px; border-radius: 12px; background: linear-gradient(135deg,#7656c9,#9879e8); box-shadow: 0 5px 14px rgba(118,86,201,.18); }
+        .counter { color: #7a8799; font-size: 13px; margin: 3px 0 12px; }
+        .flashcard { height: min(58vh, 490px); min-height: 360px; margin-bottom: 16px; }
+        .card-inner { border-radius: 24px; box-shadow: 0 14px 35px rgba(35,55,85,.12); }
+        .card-front,.card-back { border-radius: 24px; padding: 24px; }
+        .card-front { background: linear-gradient(145deg,#fff 0%,#f8fbff 100%); }
+        .card-back { background: linear-gradient(145deg,#fffdf5 0%,#fff7df 100%); }
+        .text-huge { font-size: clamp(76px, 9vw, 112px); }
+        .controls { gap: 10px; }
+        .controls button { margin: 0; padding: 13px 10px; border-radius: 12px; background: #3478e5; }
+        .controls button.btn-shuffle { background: #f1bd4c; }
+        .quiz-card { border: 1px solid #e7edf5; border-radius: 22px; box-shadow: 0 12px 32px rgba(35,55,85,.09); }
+        .quiz-btn { border: 1px solid #dce5f0; border-radius: 13px; }
+        @media (min-width: 900px) {
+            .container { min-height: calc(100vh - 48px); }
+            #flashcard-section { align-self: center; }
+            .flashcard { height: min(58vh, 490px); }
+        }
+        @media (max-width: 899px) {
+            body { padding: 12px; }
+            .container { display: flex; flex-direction: column; width: 100%; padding: 14px; gap: 12px; border-radius: 18px; }
+            .sidebar { width: 100%; gap: 10px; }
+            .app-nav,.search-box,.tabs,.batch-panel,.progress-container,#flashcard-section,#quiz-section { width: 100%; }
+            .batch-list { grid-template-columns: repeat(4,minmax(0,1fr)); }
+            .flashcard { height: min(56vh, 430px); min-height: 330px; }
+        }
+        @media (max-width: 480px) {
+            body { padding: 7px; }
+            .container { padding: 10px; gap: 10px; }
+            .batch-panel { padding: 11px; }
+            .batch-list { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 6px; }
+            .batch-btn { padding: 9px 3px; font-size: 11px; }
+            .tab { font-size: 10px; }
+            .flashcard { min-height: 310px; }
+            .controls button { font-size: 12px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <aside class="sidebar" aria-label="Điều khiển học từ vựng">
+    <div class="app-nav">
+        <div class="nav-item active" id="nav-flashcard" onclick="switchAppMode('flashcard')">🃏 Học Thẻ</div>
+        <div class="nav-item" id="nav-quiz" onclick="switchAppMode('quiz')">📝 Trắc Nghiệm</div>
+    </div>
+
+    <div class="search-box">
+        <input type="text" id="searchInput" oninput="handleSearch()" placeholder="🔍 Tìm kiếm (Tiếng Việt, Pinyin, Hán tự...)">
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" id="tab-all" onclick="setMode('all')">Tất cả</div>
+        <div class="tab" id="tab-marked" onclick="setMode('marked')">Chưa thuộc</div>
+        <div class="tab" id="tab-trashed" onclick="setMode('trashed')">Đã ẩn</div>
+    </div>
+
+    <section class="batch-panel" aria-label="Chọn nhóm từ vựng">
+        <div class="batch-heading">📚 Chọn Batch để học</div>
+        <div class="batch-list" id="batchList"></div>
+        <div class="batch-status" id="batchStatus">Đang hiển thị tất cả từ vựng</div>
+    </section>
+    </aside>
+
+    <div class="progress-container">
+        <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <div id="flashcard-section">
+        <button class="btn-reverse" id="btn-reverse" onclick="toggleReverseMode()">🔄 Đang học: Nhìn Hán ➡️ Đọc Nghĩa</button>
+        
+        <div class="counter"><span id="currentNum">1</span> / <span id="totalNum"></span></div>
+
+        <div class="flashcard" id="flashcard" onclick="toggleCard()">
+            <div class="card-inner">
+                <div class="trash-btn" id="trash-btn" onclick="toggleTrash(event)" title="Cho vào thùng rác / Khôi phục">🗑️</div>
+                <div class="bookmark-btn" id="bookmark-btn" onclick="toggleMark(event)" title="Đánh dấu chưa thuộc">★</div>
+                
+                <div class="card-front" id="card-front-text"></div>
+                <div class="card-back">
+                    <div id="card-back-main"></div>
+                    <div id="card-back-sub"></div>
+                    <div class="compounds-box" id="compounds-box">
+                        <div class="compounds-title">Ghép từ / Mở rộng:</div>
+                        <div class="compounds-text" id="compounds"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button onclick="prevCard()">&#8592; Trước</button>
+            <button class="btn-shuffle" onclick="shuffleCards()">Trộn từ</button>
+            <button onclick="nextCard()">Sau &#8594;</button>
+        </div>
+    </div>
+
+    <div id="quiz-section">
+        <div class="quiz-header">
+            <div class="quiz-score">Điểm: <span id="quizScore">0</span> / <span id="quizTotal">0</span></div>
+            <button class="quiz-shuffle-btn" onclick="shuffleQuiz()">🔀 Trộn & Làm lại</button>
+        </div>
+        
+        <div class="quiz-card">
+            <div class="quiz-hanzi" id="quiz-hanzi">字</div>
+            <div class="quiz-meaning" id="quiz-meaning">Nghĩa tiếng Việt</div>
+            
+            <div class="quiz-options" id="quiz-options"></div>
+            
+            <div class="compounds-box" id="quiz-compounds-box" style="display:none; margin-top:15px;">
+                <div class="compounds-title">Ghép từ / Mở rộng:</div>
+                <div class="compounds-text" id="quiz-compounds"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const CURRENT_BATCH = 6	;
+
+    const masterVocabList = [
+        { hanzi: "您", pinyin: "nín", meaning: "ngài", comp: "您好 (nín hǎo - Xin chào ngài)", batch: 0 },
+        { hanzi: "老师", pinyin: "lǎoshī", meaning: "giáo viên", comp: "中国老师 (Zhōngguó lǎoshī - Giáo viên Trung Quốc)", batch: 0 },
+        { hanzi: "名字", pinyin: "míngzi", meaning: "tên", comp: "叫什么名字？ (jiào shénme míngzi? - Tên là gì?)", batch: 0 },
+        { hanzi: "呢", pinyin: "ne", meaning: "trợ từ", comp: "我呢？ (wǒ ne? - Còn tôi thì sao?)", batch: 0 },
+        { hanzi: "越南", pinyin: "Yuènán", meaning: "Việt Nam", comp: "越南人 (Yuènán rén - Người Việt Nam)", batch: 0 },
+        { hanzi: "哪", pinyin: "nǎ", meaning: "nào (dùng để hỏi lựa chọn; 哪儿/哪里 mới thường mang nghĩa ở đâu)", comp: "哪国人？ (nǎ guó rén? - Người nước nào?)", batch: 0 },
+        { hanzi: "请问", pinyin: "qǐngwèn", meaning: "xin hỏi", comp: "请问贵姓？ (qǐngwèn guìxìng? - Xin hỏi quý danh?)", batch: 0 },
+        { hanzi: "贵姓", pinyin: "guìxìng", meaning: "quý danh", comp: "免贵，姓... (miǎn guì, xìng... - Không dám, tôi họ...)", batch: 0 },
+        { hanzi: "这", pinyin: "zhè", meaning: "đây, này", comp: "这个 (zhège - Cái này)", batch: 0 },
+        { hanzi: "对不起", pinyin: "duìbuqǐ", meaning: "xin lỗi", comp: "对不起！ (duìbuqǐ! - Xin lỗi!)", batch: 0 },
+        { hanzi: "没", pinyin: "méi", meaning: "không (chưa)", comp: "没有 (méiyǒu - Không có)", batch: 0 },
+        { hanzi: "没关系", pinyin: "méiguānxi", meaning: "không có gì", comp: "没关系 (méiguānxi - Không có gì)", batch: 0 },
+        { hanzi: "名片", pinyin: "míngpiàn", meaning: "danh thiếp", comp: "一张名片 (yì zhāng míngpiàn - Một tấm danh thiếp)", batch: 0 },
+        { hanzi: "也", pinyin: "yě", meaning: "cũng", comp: "我也是 (wǒ yě shì - Tôi cũng vậy)", batch: 0 },
+        { hanzi: "很", pinyin: "hěn", meaning: "rất", comp: "很大 (hěn dà - Rất to)", batch: 0 },
+        { hanzi: "高兴", pinyin: "gāoxìng", meaning: "vui vẻ", comp: "很高兴 (hěn gāoxìng - Rất vui)", batch: 0 },
+        { hanzi: "认识", pinyin: "rènshi", meaning: "quen biết", comp: "认识你 (rènshi nǐ - Quen biết bạn)", batch: 0 },
+        { hanzi: "先生", pinyin: "xiānsheng", meaning: "ông; ngài (cách xưng hô lịch sự)" , comp: "先生好 (xiānsheng hǎo - Chào ngài)", batch: 0 },
+        { hanzi: "的", pinyin: "de", meaning: "của", comp: "我的笔 (wǒ de bǐ - Bút của tôi)", batch: 0 },
+        { hanzi: "小姐", pinyin: "xiǎojiě", meaning: "cô; cô gái; tiểu thư (tùy ngữ cảnh)", comp: "小姐 (xiǎojiě - Cô gái)", batch: 0 },
+        { hanzi: "师傅", pinyin: "shīfu", meaning: "thầy; người thợ lành nghề; bác tài (cách gọi thân mật)", comp: "师傅去哪？ (shīfu qù nǎ? - Bác tài đi đâu?)", batch: 0 },
+        { hanzi: "人民", pinyin: "rénmín", meaning: "nhân dân", comp: "人民广场 (rénmín guǎngchǎng - Quảng trường nhân dân)", batch: 0 },
+        { hanzi: "广场", pinyin: "guǎngchǎng", meaning: "quảng trường", comp: "去广场 (qù guǎngchǎng - Đi quảng trường)", batch: 0 },
+        { hanzi: "远", pinyin: "yuǎn", meaning: "xa", comp: "很远 (hěn yuǎn - Rất xa)", batch: 0 },
+        { hanzi: "近", pinyin: "jìn", meaning: "gần", comp: "很近 (hěn jìn - Rất gần)", batch: 0 },
+        { hanzi: "学校", pinyin: "xuéxiào", meaning: "trường học", comp: "去学校 (qù xuéxiào - Đi đến trường)", batch: 0 },
+        { hanzi: "哪里", pinyin: "nǎlǐ", meaning: "ở đâu", comp: "去哪里？ (qù nǎlǐ? - Đi đâu đấy?)", batch: 0 },
+        { hanzi: "知道", pinyin: "zhīdào", meaning: "biết", comp: "不知道 (bù zhīdào - Không biết)", batch: 0 },
+        { hanzi: "到", pinyin: "dào", meaning: "đến", comp: "到了 (dào le - Đến nơi rồi)", batch: 0 },
+        { hanzi: "钱", pinyin: "qián", meaning: "tiền", comp: "多少钱？ (duōshao qián? - Bao nhiêu tiền?)", batch: 0 },
+        { hanzi: "快", pinyin: "kuài", meaning: "nhanh; mau", comp: "很快 (hěn kuài - Rất nhanh)", batch: 0 },
+        { hanzi: "多少", pinyin: "duōshao", meaning: "bao nhiêu", comp: "多少钱？ (duōshao qián? - Bao nhiêu tiền?)", batch: 0 },
+        { hanzi: "谢谢", pinyin: "xièxie", meaning: "cảm ơn", comp: "谢谢 (xièxie - Cảm ơn)", batch: 0 },
+        { hanzi: "不客气", pinyin: "búkèqi", meaning: "đừng khách sáo", comp: "不客气 (bú kèqi - Đừng khách sáo)", batch: 0 },
+        { hanzi: "再见", pinyin: "zàijiàn", meaning: "tạm biệt", comp: "再见！ (zàijiàn! - Tạm biệt!)", batch: 0 },
+	{ hanzi: "对", pinyin: "duì", meaning: "đúng", comp: "对了 (duì le - Đúng rồi)", batch: 0 },
+
+        { hanzi: "要", pinyin: "yào", meaning: "muốn; cần; sẽ (tùy ngữ cảnh)", comp: "我要这个 (wǒ yào zhège - Tôi muốn cái này)", batch: 1 },
+        { hanzi: "笔", pinyin: "bǐ", meaning: "bút", comp: "我的笔 (wǒ de bǐ - Bút của tôi)", batch: 1 },
+        { hanzi: "还", pinyin: "hái", meaning: "vẫn, còn", comp: "还要什么？ (hái yào shénme? - Còn muốn gì nữa không?)", batch: 1 },
+        { hanzi: "吃", pinyin: "chī", meaning: "ăn", comp: "吃饭 (chī fàn - Ăn cơm)", batch: 1 },
+        { hanzi: "牛肉", pinyin: "niúròu", meaning: "thịt bò", comp: "吃牛肉 (chī niúròu - Ăn thịt bò)", batch: 1 },
+        { hanzi: "青菜", pinyin: "qīngcài", meaning: "rau xanh", comp: "吃青菜 (chī qīngcài - Ăn rau xanh)", batch: 1 },
+        { hanzi: "米饭", pinyin: "mǐfàn", meaning: "cơm", comp: "吃米饭 (chī mǐfàn - Ăn cơm)", batch: 1 },
+        { hanzi: "饿", pinyin: "è", meaning: "đói", comp: "很饿 (hěn è - Rất đói)", batch: 1 },
+        { hanzi: "苹果", pinyin: "píngguǒ", meaning: "quả táo", comp: "吃苹果 (chī píngguǒ - Ăn táo)", batch: 1 },
+        { hanzi: "一点儿", pinyin: "yìdiǎnr", meaning: "một chút; một ít", comp: "吃一点儿 (chī yìdiǎnr - Ăn một chút)", batch: 1 },
+        { hanzi: "碗", pinyin: "wǎn", meaning: "cái bát", comp: "两碗米饭 (liǎng wǎn mǐfàn - Hai bát cơm)", batch: 1 },
+        { hanzi: "喝", pinyin: "hē", meaning: "uống", comp: "喝水 (hē shuǐ - Uống nước)", batch: 1 },
+        { hanzi: "这个", pinyin: "zhège", meaning: "cái này", comp: "我要这个 (wǒ yào zhège - Tôi muốn cái này)", batch: 1 },
+        { hanzi: "杯", pinyin: "bēi", meaning: "cốc, ly", comp: "两杯奶茶 (liǎng bēi nǎichá - Hai cốc trà sữa)", batch: 1 },
+        { hanzi: "奶茶", pinyin: "nǎichá", meaning: "trà sữa", comp: "喝奶茶 (hē nǎichá - Uống trà sữa)", batch: 1 },
+        { hanzi: "咖啡", pinyin: "kāfēi", meaning: "cà phê", comp: "喝咖啡 (hē kāfēi - Uống cà phê)", batch: 1 },
+        { hanzi: "一共", pinyin: "yígòng", meaning: "tổng cộng", comp: "一共多少钱？ (yígòng duōshao qián? - Tổng cộng bao nhiêu tiền?)", batch: 1 },
+        { hanzi: "四川", pinyin: "Sìchuān", meaning: "Tứ Xuyên", comp: "去四川 (qù Sìchuān - Đi Tứ Xuyên)", batch: 1 },
+        { hanzi: "公园", pinyin: "gōngyuán", meaning: "công viên", comp: "去公园 (qù gōngyuán - Đi công viên)", batch: 1 },
+        { hanzi: "机场", pinyin: "jīchǎng", meaning: "sân bay", comp: "去机场 (qù jīchǎng - Đi sân bay)", batch: 1 },
+        { hanzi: "饭店", pinyin: "fàndiàn", meaning: "nhà hàng", comp: "去饭店 (qù fàndiàn - Đi nhà hàng)", batch: 1 },
+        { hanzi: "瓶", pinyin: "píng", meaning: "chai, bình", comp: "一瓶可乐 (yì píng kělè - Một chai cola)", batch: 1 },
+        { hanzi: "可乐", pinyin: "kělè", meaning: "cola", comp: "喝可乐 (hē kělè - Uống cola)", batch: 1 },
+        { hanzi: "这里", pinyin: "zhèlǐ", meaning: "ở đây", comp: "在这里 (zài zhèlǐ - Ở đây)", batch: 1 },
+        { hanzi: "那儿", pinyin: "nàr", meaning: "chỗ kia", comp: "去那儿 (qù nàr - Đi đến kia)", batch: 1 },
+        { hanzi: "工作", pinyin: "gōngzuò", meaning: "làm việc", comp: "好工作 (hǎo gōngzuò - Công việc tốt)", batch: 1 },
+        { hanzi: "公司", pinyin: "gōngsī", meaning: "công ty", comp: "去公司工作 (qù gōngsī gōngzuò - Đi đến công ty làm việc)", batch: 1 },
+        { hanzi: "做", pinyin: "zuò", meaning: "làm", comp: "做什么？ (zuò shénme? - Làm gì?)", batch: 1 },
+        { hanzi: "学习", pinyin: "xuéxí", meaning: "học tập", comp: "学习汉语 (xuéxí Hànyǔ - Học tiếng Hán)", batch: 1 },
+        { hanzi: "学生", pinyin: "xuésheng", meaning: "học sinh", comp: "大学生 (dàxuéshēng - Sinh viên đại học)", batch: 1 },
+        { hanzi: "大学", pinyin: "dàxué", meaning: "đại học", comp: "去大学 (qù dàxué - Đi đại học)", batch: 1 },
+        { hanzi: "高中", pinyin: "gāozhōng", meaning: "THPT", comp: "高中学生 (gāozhōng xuésheng - Học sinh cấp 3)", batch: 1 },
+        { hanzi: "初中", pinyin: "chūzhōng", meaning: "THCS", comp: "初中学生 (chūzhōng xuésheng - Học sinh cấp 2)", batch: 1 },
+        { hanzi: "小学", pinyin: "xiǎoxué", meaning: "Tiểu học", comp: "小学生 (xiǎoxuéshēng - Học sinh tiểu học)", batch: 1 },
+        { hanzi: "中学", pinyin: "zhōngxué", meaning: "trung học", comp: "中学生 (zhōngxuéshēng - Học sinh trung học)", batch: 1 },
+	{ hanzi: "留学生", pinyin: "liúxuéshēng", meaning: "du học sinh", comp: "中国留学生 (Zhōngguó liúxuéshēng - Du học sinh Trung Quốc)", batch: 1 },
+        { hanzi: "英语", pinyin: "Yīngyǔ", meaning: "tiếng Anh", comp: "学英语 (xué Yīngyǔ - Học tiếng Anh)", batch: 1 },
+        { hanzi: "教", pinyin: "jiāo", meaning: "dạy", comp: "教汉语 (jiāo Hànyǔ - Dạy tiếng Hán)", batch: 1 },
+        { hanzi: "朋友", pinyin: "péngyou", meaning: "bạn bè", comp: "好朋友 (hǎo péngyou - Bạn tốt)", batch: 1 },
+        { hanzi: "男", pinyin: "nán", meaning: "nam", comp: "男朋友 (nán péngyou - Bạn trai)", batch: 1 },
+        { hanzi: "女", pinyin: "nǚ", meaning: "nữ", comp: "女朋友 (nǚ péngyou - Bạn gái)", batch: 1 },
+
+        { hanzi: "本", pinyin: "běn", meaning: "quyển", comp: "两本书 (liǎng běn shū - Hai quyển sách)", batch: 2 },
+        { hanzi: "张", pinyin: "zhāng", meaning: "tờ, tấm", comp: "一张名片 (yì zhāng míngpiàn - Một tấm danh thiếp)", batch: 2 },
+        { hanzi: "和", pinyin: "hé", meaning: "và", comp: "我和他 (wǒ hé tā - Tôi và anh ấy)", batch: 2 },
+        { hanzi: "水", pinyin: "shuǐ", meaning: "nước", comp: "喝水 (hē shuǐ - Uống nước)", batch: 2 },
+        { hanzi: "商店", pinyin: "shāngdiàn", meaning: "cửa hàng", comp: "去商店买东西 (qù shāngdiàn mǎi dōngxi - Đi cửa hàng mua đồ)", batch: 2 },
+        { hanzi: "便利商店", pinyin: "biànlì shāngdiàn", meaning: "cửa hàng tiện lợi (cách dùng phổ biến ở Đài Loan; Trung Quốc đại lục thường nói 便利店)", comp: "在便利商店 (zài biànlì shāngdiàn - Ở cửa hàng tiện lợi)", batch: 2 },
+        { hanzi: "超市", pinyin: "chāoshì", meaning: "siêu thị", comp: "去超市 (qù chāoshì - Đi siêu thị)", batch: 2 },
+        { hanzi: "面条", pinyin: "miàntiáo", meaning: "mì sợi", comp: "吃面条 (chī miàntiáo - Ăn mì)", batch: 2 },
+        { hanzi: "银行", pinyin: "yínháng", meaning: "ngân hàng", comp: "去银行 (qù yínháng - Đi ngân hàng)", batch: 2 },
+        { hanzi: "买", pinyin: "mǎi", meaning: "mua", comp: "买东西 (mǎi dōngxi - Mua đồ)", batch: 2 },
+        { hanzi: "东西", pinyin: "dōngxi", meaning: "đồ vật; đồ đạc; thứ (không dịch tách 东 + 西 trong nghĩa này)", comp: "买东西 (mǎi dōngxi - Mua đồ)", batch: 2 },
+        { hanzi: "附近", pinyin: "fùjìn", meaning: "gần đây", comp: "在附近 (zài fùjìn - Ở gần đây)", batch: 2 },
+        { hanzi: "从", pinyin: "cóng", meaning: "từ", comp: "从这儿去 (cóng zhèr qù - Từ đây đi)", batch: 2 },
+        { hanzi: "对面", pinyin: "duìmiàn", meaning: "đối diện", comp: "在对面 (zài duìmiàn - Ở đối diện)", batch: 2 },
+        { hanzi: "后面", pinyin: "hòumiàn", meaning: "phía sau", comp: "在后边 (zài hòubian - Ở phía sau)", batch: 2 },
+        { hanzi: "前面", pinyin: "qiánmiàn", meaning: "phía trước", comp: "往前走 (wǎng qián zǒu - Đi về phía trước)", batch: 2 },
+        { hanzi: "左边", pinyin: "zuǒbian", meaning: "bên trái", comp: "往左拐 (wǎng zuǒ guǎi - Rẽ trái)", batch: 2 },
+        { hanzi: "右边", pinyin: "yòubian", meaning: "bên phải", comp: "往右拐 (wǎng yòu guǎi - Rẽ phải)", batch: 2 },
+        { hanzi: "走", pinyin: "zǒu", meaning: "đi", comp: "往前走 (wǎng qián zǒu - Đi về phía trước)", batch: 2 },
+        { hanzi: "往", pinyin: "wǎng", meaning: "hướng về", comp: "往左 (wǎng zuǒ - Về bên trái)", batch: 2 },
+        { hanzi: "拐", pinyin: "guǎi", meaning: "rẽ", comp: "往右拐 (wǎng yòu guǎi - Rẽ phải)", batch: 2 },
+        { hanzi: "然后", pinyin: "ránhòu", meaning: "sau đó", comp: "然后去学校 (ránhòu qù xuéxiào - Sau đó đi đến trường)", batch: 2 },
+        { hanzi: "就是", pinyin: "jiùshì", meaning: "chính là", comp: "前面就是 (qiánmiàn jiù shì - Phía trước chính là...)", batch: 2 },
+        { hanzi: "就在", pinyin: "jiù zài", meaning: "ở ngay", comp: "就在这里 (jiù zài zhèlǐ - Ở ngay tại đây)", batch: 2 },
+        { hanzi: "早上", pinyin: "zǎoshang", meaning: "buổi sáng", comp: "早上好 (zǎoshang hǎo - Chào buổi sáng)", batch: 2 },
+        { hanzi: "中午", pinyin: "zhōngwǔ", meaning: "buổi trưa", comp: "中午好 (zhōngwǔ hǎo - Chào buổi trưa)", batch: 2 },
+        { hanzi: "下午", pinyin: "xiàwǔ", meaning: "buổi chiều", comp: "下午去超市 (xiàwǔ qù chāoshì - Buổi chiều đi siêu thị)", batch: 2 },
+        { hanzi: "晚上", pinyin: "wǎnshang", meaning: "buổi tối", comp: "晚上看电影 (wǎnshang kàn diànyǐng - Buổi tối xem phim)", batch: 2 },
+        { hanzi: "星期", pinyin: "xīngqī", meaning: "tuần", comp: "星期几？ (xīngqī jǐ? - Thứ mấy?)", batch: 2 },
+        { hanzi: "几", pinyin: "jǐ", meaning: "mấy", comp: "几月几号？ (jǐ yuè jǐ hào? - Ngày mấy tháng mấy?)", batch: 2 },
+        { hanzi: "号", pinyin: "hào", meaning: "ngày (trong ngày tháng); số; cỡ (quần áo/giày dép)", comp: "今天几号？ (jīntiān jǐ hào? - Hôm nay ngày mấy?)", batch: 2 },
+        { hanzi: "月", pinyin: "yuè", meaning: "tháng", comp: "八月 (bā yuè - Tháng 8)", batch: 2 },
+        { hanzi: "生日", pinyin: "shēngrì", meaning: "sinh nhật", comp: "生日快乐 (shēngrì kuàilè - Sinh nhật vui vẻ)", batch: 2 },
+        { hanzi: "快乐", pinyin: "kuàilè", meaning: "vui vẻ", comp: "生日快乐 (shēngrì kuàilè - Sinh nhật vui vẻ)", batch: 2 },
+        { hanzi: "真", pinyin: "zhēn", meaning: "thật", comp: "真漂亮 (zhēn piàoliang - Thật xinh đẹp)", batch: 2 },
+        { hanzi: "漂亮", pinyin: "piàoliang", meaning: "xinh đẹp", comp: "真漂亮 (zhēn piàoliang - Thật xinh đẹp)", batch: 2 },
+        { hanzi: "为什么", pinyin: "wèishénme", meaning: "tại sao", comp: "为什么？ (wèishénme? - Tại sao?)", batch: 2 },
+        { hanzi: "因为", pinyin: "yīnwèi", meaning: "bởi vì", comp: "因为很远 (yīnwèi hěn yuǎn - Bởi vì rất xa)", batch: 2 },
+        { hanzi: "事", pinyin: "shì", meaning: "việc", comp: "有什么事？ (yǒu shénme shì? - Có chuyện gì thế?)", batch: 2 },
+        { hanzi: "空儿", pinyin: "kòngr", meaning: "rảnh", comp: "有空儿吗？ (yǒu kòngr ma? - Có rảnh không?)", batch: 2 },
+        { hanzi: "想", pinyin: "xiǎng", meaning: "muốn; cần; sẽ (tùy ngữ cảnh)", comp: "我想去 (wǒ xiǎng qù - Tôi muốn đi)", batch: 2 },
+        { hanzi: "看", pinyin: "kàn", meaning: "xem", comp: "看电影 (kàn diànyǐng - Xem phim)", batch: 2 },
+        { hanzi: "电影", pinyin: "diànyǐng", meaning: "phim", comp: "看电影 (kàn diànyǐng - Xem phim)", batch: 2 },
+        { hanzi: "电影院", pinyin: "diànyǐngyuàn", meaning: "rạp phim", comp: "去电影院 (qù diànyǐngyuàn - Đi rạp chiếu phim)", batch: 2 },
+        { hanzi: "见", pinyin: "jiàn", meaning: "gặp", comp: "明天见 (míngtiān jiàn - Ngày mai gặp)", batch: 2 },
+
+        { hanzi: "非常", pinyin: "fēicháng", meaning: "vô cùng", comp: "非常好 (fēicháng hǎo - Rất tốt)", batch: 3 },
+        { hanzi: "喜欢", pinyin: "xǐhuan", meaning: "thích", comp: "我喜欢你 (wǒ xǐhuan nǐ - Tôi thích bạn)", batch: 3 },
+        { hanzi: "都", pinyin: "dōu", meaning: "đều", comp: "我们都去 (wǒmen dōu qù - Chúng tôi đều đi)", batch: 3 },
+        { hanzi: "怎么", pinyin: "zěnme", meaning: "thế nào", comp: "怎么去？ (zěnme qù? - Đi thế nào?)", batch: 3 },
+        { hanzi: "怎么走", pinyin: "zěnme zǒu", meaning: "đi thế nào", comp: "怎么走？ (zěnme zǒu? - Đi như thế nào?)", batch: 3 },
+        { hanzi: "怎么样", pinyin: "zěnmeyàng", meaning: "như thế nào", comp: "这个怎么样？ (zhège zěnmeyàng? - Cái này thế nào?)", batch: 3 },
+        { hanzi: "又……又", pinyin: "yòu... yòu", meaning: "vừa... vừa", comp: "又便宜又好 (yòu piányi yòu hǎo - Vừa rẻ vừa tốt)", batch: 3 },
+        { hanzi: "吧", pinyin: "ba", meaning: "nhé, đi", comp: "走吧！ (zǒu ba! - Đi thôi!)", batch: 3 },
+        { hanzi: "坐", pinyin: "zuò", meaning: "ngồi; đi bằng (phương tiện)", comp: "坐出租车 (zuò chūzūchē - Đi taxi)", batch: 3 },
+        { hanzi: "地铁", pinyin: "dìtiě", meaning: "tàu điện ngầm", comp: "坐地铁 (zuò dìtiě - Đi tàu điện ngầm)", batch: 3 },
+        { hanzi: "出租车", pinyin: "chūzūchē", meaning: "taxi", comp: "坐出租车 (zuò chūzūchē - Đi taxi)", batch: 3 },
+        { hanzi: "公交车", pinyin: "gōngjiāochē", meaning: "xe buýt", comp: "坐公交车 (zuò gōngjiāochē - Đi xe buýt)", batch: 3 },
+        { hanzi: "骑", pinyin: "qí", meaning: "đi/điều khiển (xe đạp, xe máy); cưỡi", comp: "骑车 (qí chē - Đạp xe/lái xe)", batch: 3 },
+	{ hanzi: "摩托车", pinyin: "mótuōchē", meaning: "xe máy", comp: "骑摩托车 (qí mótuōchē - Đi xe máy)", batch: 3 },
+        { hanzi: "自行车", pinyin: "zìxíngchē", meaning: "xe đạp", comp: "骑自行车 (qí zìxíngchē - Đạp xe đạp)", batch: 3 },
+        { hanzi: "电动车", pinyin: "diàndòngchē", meaning: "xe điện", comp: "骑电动车 (qí diàndòngchē - Đi xe điện)", batch: 3 },
+        { hanzi: "走路", pinyin: "zǒulù", meaning: "đi bộ", comp: "走路去 (zǒulù qù - Đi bộ tới)", batch: 3 },
+        { hanzi: "菜", pinyin: "cài", meaning: "món ăn, rau", comp: "中国菜 (Zhōngguó cài - Món ăn Trung Quốc)", batch: 3 },
+        { hanzi: "有名", pinyin: "yǒumíng", meaning: "nổi tiếng", comp: "很有名 (hěn yǒumíng - Rất nổi tiếng)", batch: 3 },
+        { hanzi: "便宜", pinyin: "piányi", meaning: "rẻ", comp: "很便宜 (hěn piányi - Rất rẻ)", batch: 3 },
+        { hanzi: "贵", pinyin: "guì", meaning: "đắt", comp: "很贵 (hěn guì - Rất đắt)", batch: 3 },
+        { hanzi: "韩国", pinyin: "Hánguó", meaning: "Hàn Quốc", comp: "韩国人 (Hánguó rén - Người Hàn Quốc)", batch: 3 },
+        { hanzi: "家人", pinyin: "jiārén", meaning: "người nhà", comp: "我的家人 (wǒ de jiārén - Người nhà của tôi)", batch: 3 },
+        { hanzi: "家庭", pinyin: "jiātíng", meaning: "gia đình", comp: "家庭医生 (jiātíng yīshēng - Bác sĩ gia đình)", batch: 3 },
+        { hanzi: "口", pinyin: "kǒu", meaning: "người (đơn vị đếm thành viên gia đình)", comp: "三口人 (sān kǒu rén - Ba người)", batch: 3 },
+        { hanzi: "爸爸", pinyin: "bàba", meaning: "bố", comp: "我爸爸 (wǒ bàba - Bố tôi)", batch: 3 },
+        { hanzi: "妈妈", pinyin: "māma", meaning: "mẹ", comp: "我妈妈 (wǒ māma - Mẹ tôi)", batch: 3 },
+        { hanzi: "哥哥", pinyin: "gēge", meaning: "anh trai", comp: "我哥哥 (wǒ gēge - Anh trai tôi)", batch: 3 },
+        { hanzi: "姐姐", pinyin: "jiějie", meaning: "chị gái", comp: "我姐姐 (wǒ jiějie - Chị gái tôi)", batch: 3 },
+        { hanzi: "弟弟", pinyin: "dìdi", meaning: "em trai", comp: "我弟弟 (wǒ dìdi - Em trai tôi)", batch: 3 },
+        { hanzi: "妹妹", pinyin: "mèimei", meaning: "em gái", comp: "我妹妹 (wǒ mèimei - Em gái tôi)", batch: 3 },
+        { hanzi: "谁", pinyin: "shéi", meaning: "ai", comp: "他是谁？ (tā shì shéi? - Anh ấy là ai?)", batch: 3 },
+        { hanzi: "照片", pinyin: "zhàopiàn", meaning: "bức ảnh", comp: "一张照片 (yì zhāng zhàopiàn - Một bức ảnh)", batch: 3 },
+        { hanzi: "律师", pinyin: "lǜshī", meaning: "luật sư", comp: "大律师 (dà lǜshī - Đại luật sư)", batch: 3 },
+        { hanzi: "医生", pinyin: "yīshēng", meaning: "bác sĩ", comp: "好医生 (hǎo yīshēng - Bác sĩ giỏi)", batch: 3 },
+        { hanzi: "今年", pinyin: "jīnnián", meaning: "năm nay", comp: "今年去 (jīnnián qù - Năm nay đi)", batch: 3 },
+        { hanzi: "去年", pinyin: "qùnián", meaning: "năm ngoái", comp: "去年学习 (qùnián xuéxí - Năm ngoái học)", batch: 3 },
+        { hanzi: "明年", pinyin: "míngnián", meaning: "năm sau", comp: "明年见 (míngnián jiàn - Năm sau gặp)", batch: 3 },
+        { hanzi: "狗", pinyin: "gǒu", meaning: "chó", comp: "一条狗 (yì tiáo gǒu - Một con chó)", batch: 3 },
+        { hanzi: "猫", pinyin: "māo", meaning: "mèo", comp: "一只猫 (yì zhī māo - Một con mèo)", batch: 3 },
+        { hanzi: "可爱", pinyin: "kě'ài", meaning: "đáng yêu", comp: "很可爱 (hěn kě'ài - Rất đáng yêu)", batch: 3 },
+        { hanzi: "医院", pinyin: "yīyuàn", meaning: "bệnh viện", comp: "去医院 (qù yīyuàn - Đi bệnh viện)", batch: 3 },
+        { hanzi: "只", pinyin: "zhī", meaning: "lượng từ cho một số động vật; một số đồ vật", comp: "两只猫 (liǎng zhī māo - Hai con mèo)", batch: 3 },
+        { hanzi: "条", pinyin: "tiáo", meaning: "lượng từ cho vật dài, hẹp (ví dụ: cá, đường, quần)", comp: "一条狗 (yì tiáo gǒu - Một con chó)", batch: 3 },
+        
+        { hanzi: "高", pinyin: "gāo", meaning: "cao", comp: "很高 (hěn gāo - Rất cao)", batch: 4 },
+        { hanzi: "方便", pinyin: "fāngbiàn", meaning: "thuận tiện", comp: "很方便 (hěn fāngbiàn - Rất thuận tiện)", batch: 4 },
+        { hanzi: "慢", pinyin: "màn", meaning: "chậm", comp: "很慢 (hěn màn - Rất chậm)", batch: 4 },
+	{ hanzi: "每天", pinyin: "měitiān", meaning: "mỗi ngày", comp: "每天学习 (měitiān xuéxí - Học mỗi ngày)", batch: 4 },
+        { hanzi: "图书馆", pinyin: "túshūguǎn", meaning: "thư viện", comp: "去图书馆 (qù túshūguǎn - Đi thư viện)", batch: 4 },
+        { hanzi: "正在", pinyin: "zhèngzài", meaning: "đang", comp: "正在看电视 (zhèngzài kàn diànshì - Đang xem tivi)", batch: 4 },
+        { hanzi: "听", pinyin: "tīng", meaning: "nghe", comp: "听音乐 (tīng yīnyuè - Nghe nhạc)", batch: 4 },
+        { hanzi: "音乐", pinyin: "yīnyuè", meaning: "âm nhạc", comp: "听音乐 (tīng yīnyuè - Nghe nhạc)", batch: 4 },
+        { hanzi: "好听", pinyin: "hǎotīng", meaning: "hay (nghe)", comp: "很好听 (hěn hǎotīng - Rất hay)", batch: 4 },
+        { hanzi: "唱", pinyin: "chàng", meaning: "hát", comp: "唱歌 (chàng gē - Hát bài hát)", batch: 4 },
+        { hanzi: "歌", pinyin: "gē", meaning: "bài hát", comp: "唱歌 (chàng gē - Hát bài hát)", batch: 4 },
+        { hanzi: "常常", pinyin: "chángcháng", meaning: "thường xuyên", comp: "常常去 (chángcháng qù - Thường xuyên đi)", batch: 4 },
+        { hanzi: "行", pinyin: "xíng", meaning: "được; ổn; có thể (khẩu ngữ)", comp: "行不行？ (xíng bù xíng? - Được không?)", batch: 4 },
+        { hanzi: "这次", pinyin: "zhè cì", meaning: "lần này", comp: "这次去 (zhè cì qù - Lần này đi)", batch: 4 },
+        { hanzi: "下次", pinyin: "xià cì", meaning: "lần sau", comp: "下次见 (xià cì jiàn - Lần sau gặp)", batch: 4 },
+        { hanzi: "平时", pinyin: "píngshí", meaning: "bình thường", comp: "平时工作 (píngshí gōngzuò - Bình thường làm việc)", batch: 4 },
+        { hanzi: "打篮球", pinyin: "dǎ lánqiú", meaning: "chơi bóng rổ", comp: "去打篮球 (qù dǎ lánqiú - Đi chơi bóng rổ)", batch: 4 },
+        { hanzi: "打羽毛球", pinyin: "dǎ yǔmáoqiú", meaning: "chơi cầu lông", comp: "和朋友打羽毛球 (hé péngyou dǎ yǔmáoqiú - Cùng bạn đánh cầu lông)", batch: 4 },
+        { hanzi: "打排球", pinyin: "dǎ páiqiú", meaning: "chơi bóng chuyền", comp: "打排球 (dǎ páiqiú - Chơi bóng chuyền)", batch: 4 },
+        { hanzi: "打网球", pinyin: "dǎ wǎngqiú", meaning: "chơi tennis", comp: "常常打网球 (chángcháng dǎ wǎngqiú - Thường chơi tennis)", batch: 4 },
+        { hanzi: "电视", pinyin: "diànshì", meaning: "tivi", comp: "看电视 (kàn diànshì - Xem tivi)", batch: 4 },
+        { hanzi: "跳舞", pinyin: "tiàowǔ", meaning: "khiêu vũ, nhảy", comp: "喜欢跳舞 (xǐhuan tiàowǔ - Thích nhảy)", batch: 4 },
+        { hanzi: "街舞", pinyin: "jiēwǔ", meaning: "nhảy hip hop", comp: "跳街舞 (tiào jiēwǔ - Nhảy hip hop)", batch: 4 },
+        { hanzi: "别人", pinyin: "biérén", meaning: "người khác", comp: "别人的东西 (biérén de dōngxi - Đồ của người khác)", batch: 4 },
+        { hanzi: "别", pinyin: "bié", meaning: "đừng, khác", comp: "别去 (bié qù - Đừng đi)", batch: 4 },
+        { hanzi: "周末", pinyin: "zhōumò", meaning: "cuối tuần", comp: "周末快乐 (zhōumò kuàilè - Cuối tuần vui vẻ)", batch: 4 },
+        { hanzi: "一起", pinyin: "yìqǐ", meaning: "cùng nhau", comp: "一起去图书馆 (yìqǐ qù túshūguǎn - Cùng đi thư viện)", batch: 4 },
+        { hanzi: "下个", pinyin: "xià ge", meaning: "tiếp theo; sau (thường đứng trước danh từ chỉ thời gian/sự vật)", comp: "下个星期 (xià ge xīngqī - Tuần sau)", batch: 4 },
+
+        { hanzi: "现在", pinyin: "xiànzài", meaning: "bây giờ", comp: "现在几点？ (xiànzài jǐ diǎn? - Bây giờ mấy giờ?)", batch: 5 },
+        { hanzi: "点", pinyin: "diǎn", meaning: "giờ (khi nói thời gian); điểm", comp: "八点 (bā diǎn - 8 giờ)", batch: 5 },
+        { hanzi: "一刻 / 两刻 / 三刻", pinyin: "yíkè / liǎngkè / sānkè", meaning: "một khắc / hai khắc / ba khắc (cách nói giờ; nên học dạng 一刻钟 = 15 phút)", comp: "一点一刻 (yì diǎn yíkè - 1 giờ 15 phút)", batch: 5 },
+        { hanzi: "半", pinyin: "bàn", meaning: "một nửa; rưỡi (trong cách nói giờ)", comp: "八点半 (bā diǎn bàn - 8 giờ rưỡi)", batch: 5 },
+        { hanzi: "分", pinyin: "fēn", meaning: "phút; chia (tùy ngữ cảnh)", comp: "十分 (shí fēn - 10 phút)", batch: 5 },
+        { hanzi: "课", pinyin: "kè", meaning: "bài học, môn học", comp: "汉语课 (Hànyǔ kè - Môn tiếng Hán)", batch: 5 },
+        { hanzi: "上课", pinyin: "shàngkè", meaning: "vào học, lên lớp", comp: "上课了 (shàngkè le - Vào học rồi)", batch: 5 },
+        { hanzi: "下课", pinyin: "xiàkè", meaning: "tan học", comp: "下课后 (xiàkè hòu - Sau khi tan học)", batch: 5 },
+        { hanzi: "上班", pinyin: "shàngbān", meaning: "đi làm", comp: "去上班 (qù shàngbān - Đi làm)", batch: 5 },
+        { hanzi: "下班", pinyin: "xiàbān", meaning: "tan làm", comp: "下班回家 (xiàbān huí jiā - Tan làm về nhà)", batch: 5 },
+        { hanzi: "中秋节", pinyin: "Zhōngqiū jié", meaning: "Tết Trung thu", comp: "中秋节快乐 (Zhōngqiū jié kuàilè - Trung thu vui vẻ)", batch: 5 },
+        { hanzi: "午饭", pinyin: "wǔfàn", meaning: "bữa trưa", comp: "吃午饭 (chī wǔfàn - Ăn trưa)", batch: 5 },
+        { hanzi: "早饭", pinyin: "zǎofàn", meaning: "bữa sáng", comp: "吃早饭 (chī zǎofàn - Ăn sáng)", batch: 5 },
+        { hanzi: "晚饭", pinyin: "wǎnfàn", meaning: "bữa tối", comp: "吃晚饭 (chī wǎnfàn - Ăn tối)", batch: 5 },
+        { hanzi: "或者", pinyin: "huòzhě", meaning: "hoặc là", comp: "去或者不去 (qù huòzhě bú qù - Đi hoặc không đi)", batch: 5 },
+        { hanzi: "门口", pinyin: "ménkǒu", meaning: "cửa ra vào; lối vào; cổng", comp: "学校门口 (xuéxiào ménkǒu - Cổng trường)", batch: 5 },
+        { hanzi: "起床", pinyin: "qǐchuáng", meaning: "thức dậy", comp: "早点起床 (zǎo diǎn qǐchuáng - Dậy sớm một chút)", batch: 5 },
+        { hanzi: "早起", pinyin: "zǎoqǐ", meaning: "dậy sớm", comp: "早睡早起 (zǎoshuì zǎoqǐ - Ngủ sớm dậy sớm)", batch: 5 },
+        { hanzi: "晚起", pinyin: "wǎnqǐ", meaning: "dậy muộn", comp: "今天晚起 (jīntiān wǎnqǐ - Hôm nay dậy muộn)", batch: 5 },
+        { hanzi: "有时候", pinyin: "yǒushíhou", meaning: "có lúc, thỉnh thoảng", comp: "有时候去 (yǒushíhou qù - Thỉnh thoảng đi)", batch: 5 },
+        { hanzi: "睡觉", pinyin: "shuìjiào", meaning: "ngủ", comp: "去睡觉 (qù shuìjiào - Đi ngủ)", batch: 5 },
+        { hanzi: "早睡", pinyin: "zǎoshuì", meaning: "ngủ sớm", comp: "早睡早起 (zǎoshuì zǎoqǐ - Ngủ sớm dậy sớm)", batch: 5 },
+        { hanzi: "晚睡", pinyin: "wǎnshuì", meaning: "ngủ muộn", comp: "别晚睡 (bié wǎnshuì - Đừng ngủ muộn)", batch: 5 },
+        { hanzi: "所以", pinyin: "suǒyǐ", meaning: "cho nên", comp: "因为...所以... (yīnwèi...suǒyǐ... - Bởi vì... cho nên...)", batch: 5 },
+        { hanzi: "回", pinyin: "huí", meaning: "về, quay lại", comp: "回家 (huí jiā - Về nhà)", batch: 5 },
+        { hanzi: "这么", pinyin: "zhème", meaning: "như thế này; đến mức này", comp: "这么大 (zhème dà - To như vậy)", batch: 5 },
+        { hanzi: "左右", pinyin: "zuǒyòu", meaning: "khoảng chừng", comp: "八点左右 (bā diǎn zuǒyòu - Khoảng 8 giờ)", batch: 5 },
+        { hanzi: "可以", pinyin: "kěyǐ", meaning: "có thể", comp: "可以去 (kěyǐ qù - Có thể đi)", batch: 5 },
+        { hanzi: "用", pinyin: "yòng", meaning: "dùng", comp: "用手机 (yòng shǒujī - Dùng điện thoại)", batch: 5 },
+        { hanzi: "借", pinyin: "jiè", meaning: "mượn", comp: "借书 (jiè shū - Mượn sách)", batch: 5 },
+        { hanzi: "手机", pinyin: "shǒujī", meaning: "điện thoại", comp: "我的手机 (wǒ de shǒujī - Điện thoại của tôi)", batch: 5 },
+        { hanzi: "电话", pinyin: "diànhuà", meaning: "điện thoại; cuộc gọi (không nhất thiết chỉ điện thoại bàn)", comp: "打一个电话 (dǎ yí ge diànhuà - Gọi một cuộc điện thoại)", batch: 5 },
+        { hanzi: "给", pinyin: "gěi", meaning: "cho; đưa cho; cho/đối với (giới từ, tùy cấu trúc)", comp: "给我 (gěi wǒ - Đưa cho tôi)", batch: 5 },
+        { hanzi: "号码", pinyin: "hàomǎ", meaning: "mã số, số điện thoại", comp: "电话号码 (diànhuà hàomǎ - Số điện thoại)", batch: 5 },
+        { hanzi: "等", pinyin: "děng", meaning: "đợi", comp: "等一下 (děng yíxià - Đợi một lát)", batch: 5 },
+        { hanzi: "一下", pinyin: "yíxià", meaning: "một lát, một chút", comp: "等一下 (děng yíxià - Đợi một lát)", batch: 5 },
+
+        { hanzi: "打算", pinyin: "dǎsuàn", meaning: "dự định", comp: "你打算做什么？ (nǐ dǎsuàn zuò shénme? - Bạn dự định làm gì?)", batch: 6 },
+        { hanzi: "考试", pinyin: "kǎoshì", meaning: "thi, kỳ thi", comp: "明天考试 (míngtiān kǎoshì - Ngày mai thi)", batch: 6 },
+        { hanzi: "去玩", pinyin: "qù wán", meaning: "đi chơi", comp: "去公园玩 (qù gōngyuán wán - Đi công viên chơi)", batch: 6 },
+        { hanzi: "复习", pinyin: "fùxí", meaning: "ôn tập", comp: "复习功课 (fùxí gōngkè - Ôn bài)", batch: 6 },
+        { hanzi: "找", pinyin: "zhǎo", meaning: "tìm", comp: "找人 (zhǎo rén - Tìm người)", batch: 6 },
+        { hanzi: "作业", pinyin: "zuòyè", meaning: "bài tập", comp: "做作业 (zuò zuòyè - Làm bài tập)", batch: 6 },
+        { hanzi: "帮忙", pinyin: "bāngmáng", meaning: "giúp đỡ (忙: bận)", comp: "请帮忙 (qǐng bāngmáng - Xin giúp đỡ)", batch: 6 },
+        { hanzi: "最近", pinyin: "zuìjìn", meaning: "gần đây", comp: "最近好吗？ (zuìjìn hǎo ma? - Gần đây khỏe không?)", batch: 6 },
+        { hanzi: "可是", pinyin: "kěshì", meaning: "nhưng mà", comp: "可是我不去 (kěshì wǒ bú qù - Nhưng tôi không đi)", batch: 6 },
+        { hanzi: "锻炼", pinyin: "duànliàn", meaning: "rèn luyện", comp: "锻炼身体 (duànliàn shēntǐ - Rèn luyện thân thể)", batch: 6 },
+        { hanzi: "身体", pinyin: "shēntǐ", meaning: "cơ thể, sức khỏe", comp: "身体好吗？ (shēntǐ hǎo ma? - Sức khỏe tốt không?)", batch: 6 },
+        { hanzi: "时间", pinyin: "shíjiān", meaning: "thời gian", comp: "没有时间 (méiyǒu shíjiān - Không có thời gian)", batch: 6 },
+        { hanzi: "写", pinyin: "xiě", meaning: "viết", comp: "写字 (xiě zì - Viết chữ)", batch: 6 },
+        { hanzi: "说", pinyin: "shuō", meaning: "nói", comp: "说话 (shuō huà - Nói chuyện)", batch: 6 },
+        { hanzi: "跟", pinyin: "gēn", meaning: "với, cùng", comp: "跟我来 (gēn wǒ lái - Đi theo tôi)", batch: 6 },
+        { hanzi: "支", pinyin: "zhī", meaning: "chiếc, cây (lượng từ)", comp: "一支笔 (yì zhī bǐ - Một cây bút)", batch: 6 },
+        { hanzi: "电脑", pinyin: "diànnǎo", meaning: "máy tính", comp: "用电脑 (yòng diànnǎo - Dùng máy tính)", batch: 6 },
+        { hanzi: "没问题", pinyin: "méi wèntí", meaning: "không vấn đề gì", comp: "没问题！ (méi wèntí! - Không vấn đề!)", batch: 6 },
+        { hanzi: "没电了", pinyin: "méi diàn le", meaning: "hết pin, mất điện", comp: "手机没电了 (shǒujī méi diàn le - Điện thoại hết pin rồi)", batch: 6 },
+        { hanzi: "提到", pinyin: "tídào", meaning: "nhắc đến", comp: "别提到他 (bié tídào tā - Đừng nhắc đến anh ấy)", batch: 6 },
+        { hanzi: "商场", pinyin: "shāngchǎng", meaning: "trung tâm thương mại", comp: "去商场买东西 (qù shāngchǎng mǎi dōngxi - Đi TTTM mua đồ)", batch: 6 },
+        { hanzi: "同学", pinyin: "tóngxué", meaning: "bạn học", comp: "老同学 (lǎo tóngxué - Bạn học cũ)", batch: 6 },
+        { hanzi: "同屋", pinyin: "tóngwū", meaning: "người ở cùng nhà/phòng (khẩu ngữ)", comp: "我的同屋 (wǒ de tóngwū - Bạn cùng phòng của tôi)", batch: 6 },
+        { hanzi: "室友", pinyin: "shìyǒu", meaning: "bạn cùng phòng", comp: "好室友 (hǎo shìyǒu - Bạn cùng phòng tốt)", batch: 6 },
+        { hanzi: "衣服", pinyin: "yīfu", meaning: "quần áo", comp: "买衣服 (mǎi yīfu - Mua quần áo)", batch: 6 },
+        { hanzi: "件", pinyin: "jiàn", meaning: "chiếc, kiện (lượng từ áo)", comp: "一件衣服 (yí jiàn yīfu - Một bộ quần áo)", batch: 6 },
+        { hanzi: "衬衫", pinyin: "chènshān", meaning: "áo sơ mi", comp: "一件衬衫 (yí jiàn chènshān - Một chiếc áo sơ mi)", batch: 6 },
+        { hanzi: "颜色", pinyin: "yánsè", meaning: "màu sắc", comp: "什么颜色？ (shénme yánsè? - Màu gì?)", batch: 6 },
+        { hanzi: "黑色", pinyin: "hēisè", meaning: "màu đen", comp: "黑色衣服 (hēisè yīfu - Quần áo màu đen)", batch: 6 },
+        { hanzi: "白色", pinyin: "báisè", meaning: "màu trắng", comp: "白色衬衫 (báisè chènshān - Áo sơ mi trắng)", batch: 6 },
+        { hanzi: "红色", pinyin: "hóngsè", meaning: "màu đỏ", comp: "喜欢红色 (xǐhuan hóngsè - Thích màu đỏ)", batch: 6 },
+        { hanzi: "粉色", pinyin: "fěnsè", meaning: "màu hồng", comp: "粉色衣服 (fěnsè yīfu - Quần áo màu hồng)", batch: 6 },
+        { hanzi: "黄色", pinyin: "huángsè", meaning: "màu vàng", comp: "黄色的小猫 (huángsè de xiǎo māo - Mèo con màu vàng)", batch: 6 },
+        { hanzi: "蓝色", pinyin: "lánsè", meaning: "màu xanh da trời", comp: "蓝色的天空 (lánsè de tiānkōng - Bầu trời xanh)", batch: 6 },
+        { hanzi: "绿色", pinyin: "lǜsè", meaning: "màu xanh lá", comp: "绿色的茶 (lǜsè de chá - Trà xanh)", batch: 6 },
+        { hanzi: "橙色", pinyin: "chéngsè", meaning: "màu cam", comp: "橙色衣服 (chéngsè yīfu - Áo màu cam)", batch: 6 },
+        { hanzi: "紫色", pinyin: "zǐsè", meaning: "màu tím", comp: "紫色衬衫 (zǐsè chènshān - Áo sơ mi tím)", batch: 6 },
+        { hanzi: "棕色", pinyin: "zōngsè", meaning: "màu nâu", comp: "棕色的狗 (zōngsè de gǒu - Chó màu nâu)", batch: 6 },	
+        { hanzi: "试", pinyin: "shì", meaning: "thử", comp: "试一下 (shì yíxià - Thử một chút)", batch: 6 },
+        { hanzi: "穿", pinyin: "chuān", meaning: "mặc, đi (giày)", comp: "穿衣服 (chuān yīfu - Mặc quần áo)", batch: 6 },
+        { hanzi: "觉得", pinyin: "juéde", meaning: "cảm thấy", comp: "我觉得很好 (wǒ juéde hěn hǎo - Tôi cảm thấy rất tốt)", batch: 6 },
+        { hanzi: "合适", pinyin: "héshì", meaning: "phù hợp, vừa vặn", comp: "大小很合适 (dàxiǎo hěn héshì - Kích cỡ rất vừa vặn)", batch: 6 },
+        { hanzi: "双", pinyin: "shuāng", meaning: "đôi; cặp; lượng từ cho vật đi thành đôi (giày, tất...)", comp: "一双鞋 (yì shuāng xié - Một đôi giày)", batch: 6 },
+        { hanzi: "鞋", pinyin: "xié", meaning: "giày", comp: "买鞋 (mǎi xié - Mua giày)", batch: 6 },
+        { hanzi: "大小", pinyin: "dàxiǎo", meaning: "kích cỡ, to nhỏ", comp: "大小合适 (dàxiǎo héshì - Kích cỡ vừa vặn)", batch: 6 },
+        { hanzi: "有点儿", pinyin: "yǒudiǎnr", meaning: "hơi; có chút (thường mang sắc thái không như ý)", comp: "有点儿大 (yǒudiǎnr dà - Hơi to một chút)", batch: 6 },
+        
+	{ hanzi: "不错", pinyin: "búcuò", meaning: "không tệ; khá tốt (không nên dịch tách nghĩa từng chữ)", comp: "很不错 (hěn búcuò - Rất không tồi / Rất tốt)", batch: 7 },
+        { hanzi: "喂", pinyin: "wéi / wèi", meaning: "wèi: a-lô (khi nghe điện thoại); wéi: này/ơi (gọi người, ít dùng hơn)", comp: "喂，你好！ (wéi, nǐ hǎo! - Alo, xin chào!)", batch: 7 },
+        { hanzi: "准备", pinyin: "zhǔnbèi", meaning: "chuẩn bị", comp: "准备好了吗？ (zhǔnbèi hǎo le ma? - Chuẩn bị xong chưa?)", batch: 7 },
+        { hanzi: "难", pinyin: "nán", meaning: "khó", comp: "很难 (hěn nán - Rất khó)", batch: 7 },
+	{ hanzi: "参加", pinyin: "cānjiā", meaning: "tham gia", comp: "参加比赛 (cānjiā bǐsài - Tham gia thi đấu)", batch: 7 },
+        { hanzi: "比赛", pinyin: "bǐsài", meaning: "thi đấu, cuộc thi", comp: "参加比赛 (cānjiā bǐsài - Tham gia thi đấu)", batch: 7 },
+        { hanzi: "旅行", pinyin: "lǚxíng", meaning: "du lịch", comp: "去旅行 (qù lǚxíng - Đi du lịch)", batch: 7 },
+        { hanzi: "不好意思", pinyin: "bù hǎoyìsi", meaning: "ngại quá; xin lỗi; làm phiền (tùy ngữ cảnh)", comp: "真不好意思 (zhēn bù hǎoyìsi - Thật ngại quá)", batch: 7 },
+	{ hanzi: "一些", pinyin: "yìxiē", meaning: "một vài; một ít; một số", comp: "一些朋友 (yìxiē péngyou - Một vài người bạn)", batch: 7 },
+	{ hanzi: "参观", pinyin: "cānguān", meaning: "tham quan", comp: "参观博物馆 (cānguān bówùguǎn - Tham quan bảo tàng)", batch: 7 },
+	{ hanzi: "累", pinyin: "lèi", meaning: "mệt; mệt mỏi", comp: "我很累 (wǒ hěn lèi - Tôi rất mệt)", batch: 7 },
+	{ hanzi: "爱", pinyin: "ài", meaning: "yêu; yêu thích", comp: "我爱你 (wǒ ài nǐ - Tôi yêu bạn)", batch: 7 },
+	{ hanzi: "博物馆", pinyin: "bówùguǎn", meaning: "bảo tàng", comp: "历史博物馆 (lìshǐ bówùguǎn - Bảo tàng lịch sử)", batch: 7 },
+	{ hanzi: "风景", pinyin: "fēngjǐng", meaning: "phong cảnh; cảnh đẹp", comp: "这里的风景很美 (zhèlǐ de fēngjǐng hěn měi - Phong cảnh ở đây rất đẹp)", batch: 7 },
+	{ hanzi: "风", pinyin: "fēng", meaning: "gió", comp: "刮风 (guā fēng - Có gió / gió thổi)", batch: 7 },
+	{ hanzi: "车票", pinyin: "chēpiào", meaning: "vé xe; vé tàu", comp: "买车票 (mǎi chēpiào - Mua vé xe)", batch: 7 },
+	{ hanzi: "公园门票", pinyin: "gōngyuán ménpiào", meaning: "vé vào công viên", comp: "买公园门票 (mǎi gōngyuán ménpiào - Mua vé vào công viên)", batch: 7 },
+	{ hanzi: "看上去", pinyin: "kànshàngqu", meaning: "trông có vẻ; nhìn có vẻ", comp: "看上去很好玩儿 (kànshàngqu hěn hǎowánr - Trông có vẻ rất thú vị)", batch: 7 },
+	{ hanzi: "好玩儿", pinyin: "hǎowánr", meaning: "vui; thú vị; đáng chơi", comp: "很好玩儿 (hěn hǎowánr - Rất thú vị)", batch: 7 },
+	{ hanzi: "美人", pinyin: "měirén", meaning: "mỹ nhân; người đẹp", comp: "古代美人 (gǔdài měirén - Người đẹp thời cổ đại)", batch: 7 },
+	{ hanzi: "空气", pinyin: "kōngqì", meaning: "không khí", comp: "新鲜空气 (xīnxiān kōngqì - Không khí trong lành)", batch: 7 },
+	{ hanzi: "空", pinyin: "kōng / kòng", meaning: "kōng: trống; rỗng; không trung. kòng: để trống; có thời gian rảnh", comp: "天空 (tiānkōng - Bầu trời); 有空 (yǒu kòng - Có thời gian rảnh)", batch: 7 },
+	{ hanzi: "气", pinyin: "qì", meaning: "khí; hơi; không khí; sức lực (tùy ngữ cảnh)", comp: "生气 (shēngqì - Tức giận); 天气 (tiānqì - Thời tiết)", batch: 7 },
+	{ hanzi: "生气", pinyin: "shēngqì", meaning: "tức giận; nổi giận", comp: "别生气 (bié shēngqì - Đừng tức giận)", batch: 7 },
+	{ hanzi: "拍", pinyin: "pāi", meaning: "chụp; quay; vỗ", comp: "拍照片 (pāi zhàopiàn - Chụp ảnh)", batch: 7 },
+	{ hanzi: "视频", pinyin: "shìpín", meaning: "video; đoạn phim", comp: "拍视频 (pāi shìpín - Quay video)", batch: 7 },
+	{ hanzi: "里", pinyin: "lǐ", meaning: "trong; bên trong; phía trong", comp: "家里 (jiālǐ - Trong nhà)", batch: 7 },
+	{ hanzi: "活动", pinyin: "huódòng", meaning: "hoạt động; sự kiện", comp: "参加活动 (cānjiā huódòng - Tham gia hoạt động)", batch: 7 },
+	{ hanzi: "回答", pinyin: "huídá", meaning: "trả lời; câu trả lời", comp: "回答问题 (huídá wèntí - Trả lời câu hỏi)", batch: 7 },
+	{ hanzi: "词典", pinyin: "cídiǎn", meaning: "từ điển", comp: "汉语词典 (Hànyǔ cídiǎn - Từ điển tiếng Hán)", batch: 7 },
+	{ hanzi: "玩儿", pinyin: "wánr", meaning: "chơi; vui chơi", comp: "出去玩儿 (chūqu wánr - Ra ngoài chơi)", batch: 7 },
+	{ hanzi: "告诉", pinyin: "gàosu", meaning: "nói cho biết; kể; thông báo", comp: "告诉我 (gàosu wǒ - Nói cho tôi biết)", batch: 7 },
+	{ hanzi: "微信", pinyin: "Wēixìn", meaning: "WeChat (ứng dụng nhắn tin)", comp: "发微信 (fā Wēixìn - Gửi tin nhắn WeChat)", batch: 7 },
+	{ hanzi: "忘", pinyin: "wàng", meaning: "quên", comp: "忘记 (wàngjì - Quên)", batch: 7 },
+	{ hanzi: "当然", pinyin: "dāngrán", meaning: "đương nhiên; tất nhiên", comp: "当然可以 (dāngrán kěyǐ - Tất nhiên là được)", batch: 7 },
+	{ hanzi: "有意思", pinyin: "yǒuyìsi", meaning: "thú vị; có ý nghĩa", comp: "很有意思 (hěn yǒuyìsi - Rất thú vị)", batch: 7 },
+	{ hanzi: "多长", pinyin: "duō cháng", meaning: "dài bao nhiêu; bao lâu (khi hỏi thời lượng thường dùng 多长时间)", comp: "多长时间 (duō cháng shíjiān - Bao lâu?)", batch: 7 },
+	{ hanzi: "小时", pinyin: "xiǎoshí", meaning: "tiếng; giờ (đơn vị thời gian)", comp: "两个小时 (liǎng ge xiǎoshí - Hai tiếng)", batch: 7 },
+	{ hanzi: "自己", pinyin: "zìjǐ", meaning: "bản thân; chính mình; tự mình", comp: "自己的东西 (zìjǐ de dōngxi - Đồ của chính mình)", batch: 7 },
+	{ hanzi: "消息", pinyin: "xiāoxi", meaning: "tin tức; tin nhắn; thông tin", comp: "好消息 (hǎo xiāoxi - Tin tốt)", batch: 7 },
+	{ hanzi: "一定", pinyin: "yídìng", meaning: "nhất định; chắc chắn; nhất định phải", comp: "我一定去 (wǒ yídìng qù - Tôi nhất định sẽ đi)", batch: 7 },
+
+    ];
+
+    let studyList = [];
+    let currentIndex = 0;
+    let currentMode = 'all'; 
+    let activeBatch = null;
+    let appMode = 'flashcard'; 
+    let isReverseMode = false;
+    
+    function loadArrayFromStorage(key) {
+        try {
+            const value = JSON.parse(localStorage.getItem(key) || '[]');
+            return Array.isArray(value) ? value : [];
+        } catch (error) {
+            console.warn(`Dữ liệu ${key} bị lỗi, dùng danh sách rỗng.`, error);
+            return [];
+        }
+    }
+
+    let markedHanzi = loadArrayFromStorage('markedHanzi');
+    let trashedHanzi = loadArrayFromStorage('trashedHanzi');
+    // Dọn lịch sử chatbot cũ vì chức năng AI đã được gỡ bỏ.
+    localStorage.removeItem('aiChatHistoryV4');
+    
+    const flashcardSection = document.getElementById('flashcard-section');
+    const quizSection = document.getElementById('quiz-section');
+    const flashcard = document.getElementById('flashcard');
+    const frontTextEl = document.getElementById('card-front-text');
+    const backMainEl = document.getElementById('card-back-main');
+    const backSubEl = document.getElementById('card-back-sub');
+    const compoundsBox = document.getElementById('compounds-box');
+    const compoundsEl = document.getElementById('compounds');
+    const currentNumEl = document.getElementById('currentNum');
+    const totalNumEl = document.getElementById('totalNum');
+    const progressBar = document.getElementById('progressBar');
+    const searchInput = document.getElementById('searchInput');
+
+    function switchAppMode(mode) {
+        appMode = mode;
+        document.getElementById('nav-flashcard').classList.remove('active');
+        document.getElementById('nav-quiz').classList.remove('active');
+        document.getElementById('nav-' + mode).classList.add('active');
+        
+        if(mode === 'flashcard') {
+            flashcardSection.style.display = 'block';
+            quizSection.style.display = 'none';
+            updateCard();
+        } else {
+            flashcardSection.style.display = 'none';
+            quizSection.style.display = 'block';
+            shuffleQuiz();
+        }
+    }
+
+    function removeAccents(str) { return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
+
+    function renderBatchButtons() {
+        const container = document.getElementById('batchList');
+        const batches = [...new Set(masterVocabList.map(word => Number(word.batch)))].sort((a, b) => a - b);
+        container.innerHTML = '';
+        const allButton = document.createElement('button');
+        allButton.className = `batch-btn${activeBatch === null ? ' active' : ''}`;
+        allButton.type = 'button';
+        allButton.innerHTML = 'Tất cả<span>' + masterVocabList.filter(w => !trashedHanzi.includes(w.hanzi)).length + ' từ</span>';
+        allButton.addEventListener('click', () => setBatch(null));
+        container.appendChild(allButton);
+        batches.forEach(batch => {
+            const count = masterVocabList.filter(w => Number(w.batch) === batch && !trashedHanzi.includes(w.hanzi)).length;
+            const button = document.createElement('button');
+            button.className = `batch-btn${activeBatch === batch ? ' active' : ''}`;
+            button.type = 'button';
+            button.innerHTML = `Batch ${batch}<span>${count} từ</span>`;
+            button.addEventListener('click', () => setBatch(batch));
+            container.appendChild(button);
+        });
+        document.getElementById('batchStatus').textContent = activeBatch === null
+            ? 'Đang hiển thị tất cả từ vựng'
+            : `Đang chọn Batch ${activeBatch} · ${studyList.length} từ`;
+    }
+
+    function setBatch(batch) {
+        activeBatch = batch === null ? null : Number(batch);
+        searchInput.value = '';
+        currentMode = 'all';
+        studyList = masterVocabList.filter(word =>
+            (activeBatch === null || Number(word.batch) === activeBatch) &&
+            !trashedHanzi.includes(word.hanzi)
+        );
+        currentIndex = 0;
+        updateTabs();
+        renderBatchButtons();
+        updateCard();
+        if (appMode === 'quiz') shuffleQuiz();
+    }
+
+    function handleSearch() {
+        let query = searchInput.value.trim();
+        if (query === '') {
+            if (activeBatch !== null) setBatch(activeBatch);
+            else setMode(currentMode);
+            return;
+        }
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        let normalizedQuery = removeAccents(query);
+        studyList = masterVocabList.filter(word => {
+            const inBatch = activeBatch === null || Number(word.batch) === activeBatch;
+            const visible = currentMode === 'trashed' ? trashedHanzi.includes(word.hanzi) : !trashedHanzi.includes(word.hanzi);
+            return inBatch && visible && (
+                removeAccents(word.pinyin).includes(normalizedQuery) ||
+                removeAccents(word.meaning).includes(normalizedQuery) ||
+                word.hanzi.includes(query)
+            );
+        });
+        currentIndex = 0; updateCard();
+        document.getElementById('batchStatus').textContent = activeBatch === null
+            ? `Kết quả tìm kiếm: ${studyList.length} từ`
+            : `Batch ${activeBatch} · Kết quả tìm kiếm: ${studyList.length} từ`;
+        if(appMode === 'quiz') { shuffleQuiz(); }
+    }
+
+    function updateTabs() {
+        let activeAll = masterVocabList.filter(w => !trashedHanzi.includes(w.hanzi));
+        let activeMarked = markedHanzi.filter(w => !trashedHanzi.includes(w));
+        
+        document.getElementById('tab-all').innerText = `Tất cả (${activeAll.length})`;
+        document.getElementById('tab-marked').innerText = `Chưa thuộc (${activeMarked.length})`;
+        document.getElementById('tab-trashed').innerText = `Đã ẩn (${trashedHanzi.length})`;
+        
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        if (searchInput.value.trim() !== '') return; 
+        let currentTab = document.getElementById(`tab-${currentMode}`);
+        if (currentTab) currentTab.classList.add('active');
+    }
+
+    function setMode(mode) {
+        searchInput.value = ''; 
+        activeBatch = null;
+        if (mode === 'marked') {
+            let activeMarked = masterVocabList.filter(w => markedHanzi.includes(w.hanzi) && !trashedHanzi.includes(w.hanzi));
+            if (activeMarked.length === 0) { alert("Bạn chưa đánh dấu từ nào!"); return; }
+            studyList = activeMarked;
+        } else if (mode === 'trashed') {
+            let trashedList = masterVocabList.filter(w => trashedHanzi.includes(w.hanzi));
+            if(trashedList.length === 0) { alert("Thùng rác trống!"); return; }
+            studyList = trashedList;
+        } else {
+            studyList = masterVocabList.filter(w => !trashedHanzi.includes(w.hanzi));
+        }
+        currentMode = mode; currentIndex = 0; updateTabs(); renderBatchButtons(); updateCard();
+        if(appMode === 'quiz') { shuffleQuiz(); }
+    }
+    function toggleReverseMode() {
+        isReverseMode = !isReverseMode;
+        let btnReverse = document.getElementById('btn-reverse');
+        if (isReverseMode) {
+            btnReverse.innerText = "🔄 Đang học: Nhìn Nghĩa ➡️ Viết Hán";
+            btnReverse.style.backgroundColor = "#e67e22"; 
+        } else {
+            btnReverse.innerText = "🔄 Đang học: Nhìn Hán ➡️ Đọc Nghĩa";
+            btnReverse.style.backgroundColor = "#9b59b6";
+        }
+        updateCard(); 
+    }
+
+    function toggleMark(event) {
+        event.stopPropagation(); if (studyList.length === 0) return;
+        let currentWord = studyList[currentIndex].hanzi;
+        let index = markedHanzi.indexOf(currentWord);
+        
+        if (index > -1) { markedHanzi.splice(index, 1); } 
+        else { markedHanzi.push(currentWord); }
+        
+        localStorage.setItem('markedHanzi', JSON.stringify(markedHanzi));
+        updateTabs();
+        renderBatchButtons();
+        document.getElementById('bookmark-btn').classList.toggle('marked', markedHanzi.includes(currentWord));
+    }
+
+    function toggleTrash(event) {
+        event.stopPropagation(); if (studyList.length === 0) return;
+        let currentWord = studyList[currentIndex].hanzi;
+        let index = trashedHanzi.indexOf(currentWord);
+        
+        if (index > -1) {
+            trashedHanzi.splice(index, 1);
+        } else {
+            trashedHanzi.push(currentWord);
+        }
+        
+        localStorage.setItem('trashedHanzi', JSON.stringify(trashedHanzi));
+        updateTabs();
+        renderBatchButtons();
+        
+        if (trashedHanzi.includes(currentWord)) { 
+            document.getElementById('trash-btn').innerText = "♻️"; 
+        } else { 
+            document.getElementById('trash-btn').innerText = "🗑️"; 
+        }
+    }
+
+    function updateCard() {
+        if (appMode !== 'flashcard') return;
+        if (studyList.length === 0) {
+            frontTextEl.innerText = "Trống!";
+            frontTextEl.className = "card-front text-medium";
+            backMainEl.innerText = ""; backSubEl.innerText = "";
+            compoundsBox.style.display = "none";
+            currentNumEl.innerText = 0; totalNumEl.innerText = 0;
+            progressBar.style.width = '0%';
+            document.getElementById('bookmark-btn').style.display = 'none'; 
+            document.getElementById('trash-btn').style.display = 'none';
+            if(flashcard.classList.contains('flipped')) flashcard.classList.remove('flipped');
+            return;
+        }
+
+        document.getElementById('bookmark-btn').style.display = 'block'; 
+        document.getElementById('trash-btn').style.display = 'block';
+        let currentWord = studyList[currentIndex];
+        
+        document.getElementById('bookmark-btn').classList.toggle('marked', markedHanzi.includes(currentWord.hanzi));
+        if (trashedHanzi.includes(currentWord.hanzi)) { document.getElementById('trash-btn').innerText = "♻️"; } 
+        else { document.getElementById('trash-btn').innerText = "🗑️"; }
+        
+        if (!isReverseMode) {
+            frontTextEl.innerText = currentWord.hanzi;
+            frontTextEl.className = currentWord.hanzi.length > 4 ? "card-front text-medium" : "card-front text-huge";
+            backMainEl.innerText = currentWord.pinyin; backMainEl.className = "pinyin";
+            backSubEl.innerText = currentWord.meaning; backSubEl.className = "meaning";
+        } else {
+            frontTextEl.innerText = currentWord.meaning; frontTextEl.className = "card-front text-medium";
+            backMainEl.innerText = currentWord.hanzi; backMainEl.className = "text-large-hanzi";
+            backSubEl.innerText = currentWord.pinyin; backSubEl.className = "pinyin-small";
+        }
+        
+        if (currentWord.comp) { compoundsBox.style.display = "block"; compoundsEl.textContent = currentWord.comp; } 
+        else { compoundsBox.style.display = "none"; }
+        
+        currentNumEl.innerText = currentIndex + 1; totalNumEl.innerText = studyList.length;
+        progressBar.style.width = ((currentIndex + 1) / Math.max(studyList.length, 1)) * 100 + '%';
+        if(flashcard.classList.contains('flipped')) flashcard.classList.remove('flipped');
+    }
+
+    function toggleCard() { if (studyList.length > 0) flashcard.classList.toggle('flipped'); }
+    function nextCard() { if (studyList.length === 0) return; if (currentIndex < studyList.length - 1) { currentIndex++; updateCard(); } }
+    function prevCard() { if (currentIndex > 0) { currentIndex--; updateCard(); } }
+    
+    function shuffleCards() {
+        if (studyList.length === 0) return;
+        for (let i = studyList.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [studyList[i], studyList[j]] = [studyList[j], studyList[i]];
+        }
+        currentIndex = 0; updateCard();
+    }
+
+    let quizScore = 0;
+    let quizAnswered = 0;
+    let quizList = [];
+    let currentQuizWord = null;
+    let isClickable = true;
+
+    function shuffleQuiz() {
+        if (studyList.length === 0) {
+            document.getElementById('quiz-options').textContent = 'Không có từ để kiểm tra.';
+            return;
+        }
+        quizList = [...studyList];
+        for (let i = quizList.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [quizList[i], quizList[j]] = [quizList[j], quizList[i]];
+        }
+        currentIndex = 0;
+        quizScore = 0;
+        quizAnswered = 0;
+        loadNextQuiz();
+    }
+
+    function generatePinyinOptions(correctPinyin) {
+        // Lấy đáp án nhiễu từ chính kho từ vựng, tránh lỗi với âm không có dấu thanh.
+        const candidates = [...new Set(masterVocabList
+            .map(word => word.pinyin)
+            .filter(pinyin => pinyin && pinyin !== correctPinyin))];
+        for (let i = candidates.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+        }
+        return [correctPinyin, ...candidates.slice(0, 3)]
+            .sort(() => Math.random() - 0.5);
+    }
+
+    function updateQuizUI() {
+        document.getElementById('quizScore').innerText = quizScore;
+        document.getElementById('quizTotal').innerText = quizAnswered;
+        document.getElementById('currentNum').innerText = currentIndex + 1;
+        document.getElementById('totalNum').innerText = quizList.length;
+        progressBar.style.width = ((currentIndex + 1) / Math.max(quizList.length, 1)) * 100 + '%';
+    }
+
+    function loadNextQuiz() {
+        if(quizList.length === 0) return;
+        isClickable = true;
+        currentQuizWord = quizList[currentIndex];
+        document.getElementById('quiz-hanzi').innerText = currentQuizWord.hanzi;
+        document.getElementById('quiz-meaning').innerText = currentQuizWord.meaning;
+        
+        let options = generatePinyinOptions(currentQuizWord.pinyin);
+        let btnContainer = document.getElementById('quiz-options');
+        btnContainer.innerHTML = '';
+        
+        options.forEach(opt => {
+            let btn = document.createElement('button');
+            btn.className = 'quiz-btn';
+            btn.innerText = opt;
+            btn.onclick = function() { checkQuizAnswer(this, opt); };
+            btnContainer.appendChild(btn);
+        });
+        
+        if (currentQuizWord.comp) {
+            document.getElementById('quiz-compounds-box').style.display = "block";
+            document.getElementById('quiz-compounds').textContent = currentQuizWord.comp;
+        } else {
+            document.getElementById('quiz-compounds-box').style.display = "none";
+        }
+        
+        updateQuizUI();
+    }
+
+    function checkQuizAnswer(btn, selectedPinyin) {
+        if(!isClickable) return;
+        isClickable = false;
+        quizAnswered++;
+        
+        let btns = document.getElementById('quiz-options').children;
+        let isCorrect = (selectedPinyin === currentQuizWord.pinyin);
+        
+        if(isCorrect) { btn.classList.add('correct'); quizScore++; } 
+        else {
+            btn.classList.add('wrong');
+            for(let b of btns) { if(b.innerText === currentQuizWord.pinyin) b.classList.add('correct'); }
+        }
+        updateQuizUI();
+        
+        setTimeout(() => {
+            if (currentIndex < quizList.length - 1) {
+                currentIndex++;
+                loadNextQuiz();
+            } else {
+                alert(`Hoàn thành! Bạn đạt ${quizScore}/${quizAnswered} điểm. Nhấn “Trộn & Làm lại” nếu muốn luyện tiếp.`);
+            }
+        }, 1200);
+    }
+
+    setMode('all');
+    renderBatchButtons();
+
+</script>
+
+</body>
+</html>
