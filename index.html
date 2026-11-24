@@ -75,7 +75,7 @@
         /* QUIZ CSS */
         #quiz-section { display: none; width: 100%; }
         .quiz-card { background-color: white; border-radius: 20px; padding: 25px 20px; box-shadow: 0 6px 20px rgba(0,0,0,0.15); margin-bottom: 20px; }
-        .quiz-hanzi { font-size: 80px; color: #2c3e50; margin-bottom: 10px; }
+        .quiz-hanzi { font-size: 80px; color: #2c3e50; margin-bottom: 5px; }
         .quiz-meaning { font-size: 16px; color: #7f8c8d; margin-bottom: 20px; font-weight: bold; }
         .quiz-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .quiz-btn { background-color: #f8f9fa; border: 2px solid #bdc3c7; border-radius: 12px; padding: 12px; font-size: 20px; font-weight: bold; color: #2c3e50; cursor: pointer; transition: 0.2s; }
@@ -214,11 +214,15 @@
                 <div class="trash-btn" id="trash-btn" onclick="toggleTrash(event)" title="Cho vào thùng rác / Khôi phục">🗑️</div>
                 <div class="bookmark-btn" id="bookmark-btn" onclick="toggleMark(event)" title="Đánh dấu chưa thuộc">★</div>
                 
-                <div class="card-front" id="card-front-text"></div>
-                <div class="card-back">
-                    <div id="card-back-main"></div>
-                    <div id="card-back-sub"></div>
-                    <div class="compounds-box" id="compounds-box">
+                <div class="card-front">
+				    <div id="card-front-text"></div>
+				    <button class="speak-btn" id="front-speak-btn" onclick="speakCurrentWord(event)" title="Nghe phát âm">🔊</button>
+				</div>
+				<div class="card-back">
+				    <div id="card-back-main"></div>
+				    <div id="card-back-sub"></div>
+				    <button class="speak-btn" id="back-speak-btn" onclick="speakCurrentWord(event)" title="Nghe phát âm" style="margin-top: 2px; margin-bottom: 6px; width: 38px; height: 38px; font-size: 17px;">🔊</button>
+				    <div class="compounds-box" id="compounds-box">
                         <div class="compounds-title">Ghép từ / Mở rộng:</div>
                         <div class="compounds-text" id="compounds"></div>
                     </div>
@@ -241,6 +245,7 @@
         
         <div class="quiz-card">
             <div class="quiz-hanzi" id="quiz-hanzi">字</div>
+			<button class="speak-btn" onclick="speakQuizWord()" title="Nghe phát âm" style="margin-top: 0; margin-bottom: 10px;">🔊</button>
             <div class="quiz-meaning" id="quiz-meaning">Nghĩa tiếng Việt</div>
             
             <div class="quiz-options" id="quiz-options"></div>
@@ -673,6 +678,33 @@
     const progressBar = document.getElementById('progressBar');
     const searchInput = document.getElementById('searchInput');
 
+	function speakChinese(text) {
+	    if (!('speechSynthesis' in window)) {
+	        alert("Trình duyệt không hỗ trợ đọc tự động!");
+	        return;
+	    }
+	    window.speechSynthesis.cancel();
+	    // Lọc bỏ dấu "/" (như 喂 wéi/wèi) và "……" để đọc tự nhiên nhất
+	    let cleanText = text.split('/')[0].replace(/……/g, ' ').trim();
+	    const utterance = new SpeechSynthesisUtterance(cleanText);
+	    utterance.lang = 'zh-CN';
+	    utterance.rate = 0.8;
+	    window.speechSynthesis.speak(utterance);
+	}
+
+	function speakCurrentWord(event) {
+	    if (event) event.stopPropagation(); // Ngăn thẻ bị lật khi bấm nút loa
+	    if (studyList.length > 0) {
+	        speakChinese(studyList[currentIndex].hanzi);
+	    }
+	}
+
+	function speakQuizWord() {
+	    if (currentQuizWord) {
+	        speakChinese(currentQuizWord.hanzi);
+	    }
+	}
+
     function switchAppMode(mode) {
         appMode = mode;
         document.getElementById('nav-flashcard').classList.remove('active');
@@ -837,46 +869,55 @@
     }
 
     function updateCard() {
-        if (appMode !== 'flashcard') return;
-        if (studyList.length === 0) {
-            frontTextEl.innerText = "Trống!";
-            frontTextEl.className = "card-front text-medium";
-            backMainEl.innerText = ""; backSubEl.innerText = "";
-            compoundsBox.style.display = "none";
-            currentNumEl.innerText = 0; totalNumEl.innerText = 0;
-            progressBar.style.width = '0%';
-            document.getElementById('bookmark-btn').style.display = 'none'; 
-            document.getElementById('trash-btn').style.display = 'none';
-            if(flashcard.classList.contains('flipped')) flashcard.classList.remove('flipped');
-            return;
-        }
-
-        document.getElementById('bookmark-btn').style.display = 'block'; 
-        document.getElementById('trash-btn').style.display = 'block';
-        let currentWord = studyList[currentIndex];
-        
-        document.getElementById('bookmark-btn').classList.toggle('marked', markedHanzi.includes(currentWord.hanzi));
-        if (trashedHanzi.includes(currentWord.hanzi)) { document.getElementById('trash-btn').innerText = "♻️"; } 
-        else { document.getElementById('trash-btn').innerText = "🗑️"; }
-        
-        if (!isReverseMode) {
-            frontTextEl.innerText = currentWord.hanzi;
-            frontTextEl.className = currentWord.hanzi.length > 4 ? "card-front text-medium" : "card-front text-huge";
-            backMainEl.innerText = currentWord.pinyin; backMainEl.className = "pinyin";
-            backSubEl.innerText = currentWord.meaning; backSubEl.className = "meaning";
-        } else {
-            frontTextEl.innerText = currentWord.meaning; frontTextEl.className = "card-front text-medium";
-            backMainEl.innerText = currentWord.hanzi; backMainEl.className = "text-large-hanzi";
-            backSubEl.innerText = currentWord.pinyin; backSubEl.className = "pinyin-small";
-        }
-        
-        if (currentWord.comp) { compoundsBox.style.display = "block"; compoundsEl.textContent = currentWord.comp; } 
-        else { compoundsBox.style.display = "none"; }
-        
-        currentNumEl.innerText = currentIndex + 1; totalNumEl.innerText = studyList.length;
-        progressBar.style.width = ((currentIndex + 1) / Math.max(studyList.length, 1)) * 100 + '%';
-        if(flashcard.classList.contains('flipped')) flashcard.classList.remove('flipped');
-    }
+	    if (appMode !== 'flashcard') return;
+	    const frontSpeakBtn = document.getElementById('front-speak-btn');
+	    const backSpeakBtn = document.getElementById('back-speak-btn');
+	
+	    if (studyList.length === 0) {
+	        frontTextEl.innerText = "Trống!";
+	        frontTextEl.className = "text-medium";
+	        backMainEl.innerText = ""; backSubEl.innerText = "";
+	        compoundsBox.style.display = "none";
+	        frontSpeakBtn.style.display = "none";
+	        backSpeakBtn.style.display = "none";
+	        currentNumEl.innerText = 0; totalNumEl.innerText = 0;
+	        progressBar.style.width = '0%';
+	        document.getElementById('bookmark-btn').style.display = 'none'; 
+	        document.getElementById('trash-btn').style.display = 'none';
+	        if(flashcard.classList.contains('flipped')) flashcard.classList.remove('flipped');
+	        return;
+	    }
+	
+	    document.getElementById('bookmark-btn').style.display = 'block'; 
+	    document.getElementById('trash-btn').style.display = 'block';
+	    backSpeakBtn.style.display = 'inline-flex';
+	    let currentWord = studyList[currentIndex];
+	
+	    document.getElementById('bookmark-btn').classList.toggle('marked', markedHanzi.includes(currentWord.hanzi));
+	    if (trashedHanzi.includes(currentWord.hanzi)) { document.getElementById('trash-btn').innerText = "♻️"; } 
+	    else { document.getElementById('trash-btn').innerText = "🗑️"; }
+	
+	    if (!isReverseMode) {
+	        frontTextEl.innerText = currentWord.hanzi;
+	        frontTextEl.className = currentWord.hanzi.length > 4 ? "text-medium" : "text-huge";
+	        frontSpeakBtn.style.display = "inline-flex";
+	        backMainEl.innerText = currentWord.pinyin; backMainEl.className = "pinyin";
+	        backSubEl.innerText = currentWord.meaning; backSubEl.className = "meaning";
+	    } else {
+	        frontTextEl.innerText = currentWord.meaning; 
+	        frontTextEl.className = "text-medium";
+	        frontSpeakBtn.style.display = "none";
+	        backMainEl.innerText = currentWord.hanzi; backMainEl.className = "text-large-hanzi";
+	        backSubEl.innerText = currentWord.pinyin; backSubEl.className = "pinyin-small";
+	    }
+	
+	    if (currentWord.comp) { compoundsBox.style.display = "block"; compoundsEl.textContent = currentWord.comp; } 
+	    else { compoundsBox.style.display = "none"; }
+	
+	    currentNumEl.innerText = currentIndex + 1; totalNumEl.innerText = studyList.length;
+	    progressBar.style.width = ((currentIndex + 1) / Math.max(studyList.length, 1)) * 100 + '%';
+	    if(flashcard.classList.contains('flipped')) flashcard.classList.remove('flipped');
+	}
 
     function toggleCard() { if (studyList.length > 0) flashcard.classList.toggle('flipped'); }
     function nextCard() { if (studyList.length === 0) return; if (currentIndex < studyList.length - 1) { currentIndex++; updateCard(); } }
